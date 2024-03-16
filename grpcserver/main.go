@@ -50,5 +50,5 @@ func main() {
 	<-ctx.Done()
 
 	srv.GracefulStop()
-	log.Println("ProductCatalogService gRPC server stopped")
+	log.Println("gRPC server stopped")
 }

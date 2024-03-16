@@ -91,9 +91,6 @@ func main() {
 		log.Println("Shutdown tracer provider")
 	}()
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
-	defer cancel()
-
 	mp := initMeterProvider()
 	defer func() {
 		if err := mp.Shutdown(context.Background()); err != nil {
@@ -102,6 +99,9 @@ func main() {
 		log.Println("Shutdown meter provider")
 	}()
 	openfeature.SetProvider(flagd.NewProvider())
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
+	defer cancel()
 
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {

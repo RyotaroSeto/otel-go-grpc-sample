@@ -32,8 +32,6 @@ func main() {
 		ctx,
 		"localhost:8080",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		// grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor())は非推奨のため
-		// grpc.WithStatsHandler(otelgrpc.NewClientHandler())を使う
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)
 	if err != nil {

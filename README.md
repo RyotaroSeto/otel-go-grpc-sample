@@ -1,1 +1,1 @@
-# otel-go-grpc-sample
+# otel-go-sample

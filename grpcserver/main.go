@@ -4,8 +4,9 @@ import (
 	"log"
 	"net"
 
-	pb "otel-go-grpc-sample/proto"
+	pb "otel-go-sample/proto"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -22,7 +23,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to start server %v", err)
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
 	pb.RegisterGreetServiceServer(grpcServer, &helloServer{})
 	log.Printf("Server started at %v", lis.Addr())
 	if err := grpcServer.Serve(lis); err != nil {

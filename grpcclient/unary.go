@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	pb "otel-go-grpc-sample/proto"
+	pb "otel-go-sample/proto"
 	"time"
 )
 

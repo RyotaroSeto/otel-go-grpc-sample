@@ -1,6 +1,5 @@
 # otel-go-sample
 
-## 流れ
 1. curlでbffにrequestする
 2. bffからtodoにrequestする
 3. todoからgreetにrequestする
@@ -11,6 +10,7 @@
 ## 実行
 1. localhost:8080/todo
 
+## 流れ
 ```mermaid
 
 stateDiagram
@@ -20,6 +20,7 @@ stateDiagram
 
 ```
 
+## 分散トレース
 ```mermaid
 
 stateDiagram

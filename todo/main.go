@@ -22,6 +22,12 @@ import (
 // これはリクエスト送る側だけではなく、受け取る側にも必要
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatalf("Failed to serve gRPC server, err: %v", err)
+	}
+}
+
+func run() error {
 	close := otel.NewTracerProvider("todo")
 	defer close()
 
@@ -41,9 +47,7 @@ func main() {
 		log.Println("gRPC server stopped")
 	}()
 
-	if err := srv.Serve(ln); err != nil {
-		log.Fatalf("Failed to serve gRPC server, err: %v", err)
-	}
+	return srv.Serve(ln)
 }
 
 type todoServer struct {

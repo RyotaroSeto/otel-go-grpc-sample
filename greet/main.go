@@ -18,6 +18,12 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatalf("Failed to serve gRPC server, err: %v", err)
+	}
+}
+
+func run() error {
 	close := otel.NewTracerProvider("greet")
 	defer close()
 
@@ -37,9 +43,7 @@ func main() {
 		log.Println("gRPC server stopped")
 	}()
 
-	if err := srv.Serve(ln); err != nil {
-		log.Fatalf("Failed to serve gRPC server, err: %v", err)
-	}
+	return srv.Serve(ln)
 }
 
 type helloServer struct {

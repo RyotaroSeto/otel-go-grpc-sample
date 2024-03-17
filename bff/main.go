@@ -22,8 +22,7 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		log.Printf("failed to terminated server: %v", err)
-		os.Exit(1)
+		log.Fatalf("failed to terminated server: %v", err)
 	}
 }
 

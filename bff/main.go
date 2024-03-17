@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"net"
 	"os"
+	"os/signal"
 )
 
 func main() {
@@ -13,20 +17,19 @@ func main() {
 }
 
 func run() error {
-	return nil
-	// ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	// defer stop()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
-	// l, err := net.Listen("tcp", fmt.Sprintf(":%s", "8080"))
-	// if err != nil {
-	// 	return err
-	// }
+	l, err := net.Listen("tcp", fmt.Sprintf(":%s", "8080"))
+	if err != nil {
+		return err
+	}
 
-	// mux, err := NewHandler(ctx)
-	// if err != nil {
-	// 	return err
-	// }
+	mux, err := NewHandler(ctx)
+	if err != nil {
+		return err
+	}
 
-	// s := NewServer(l, mux)
-	// return s.Run(ctx)
+	s := NewServer(l, mux)
+	return s.Run(ctx)
 }

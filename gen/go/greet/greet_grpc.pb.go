@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: greet/greet.proto
 
-package todo
+package greet
 
 import (
 	context "context"

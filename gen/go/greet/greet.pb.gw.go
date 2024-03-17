@@ -2,11 +2,11 @@
 // source: greet/greet.proto
 
 /*
-Package todo is a reverse proxy.
+Package greet is a reverse proxy.
 
 It translates gRPC into RESTful JSON APIs.
 */
-package todo
+package greet
 
 import (
 	"context"

@@ -10,6 +10,8 @@ services:
     volumes:
       - ./:/app:delegated
     working_dir: /app/bff
+    environment:
+      - OTEL_EXPORTER_PROTOCOL=jaeger # ローカルだとjaeger
     command:
       - go
       - run

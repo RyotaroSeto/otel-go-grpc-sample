@@ -2,12 +2,15 @@ package otel
 
 import (
 	"context"
+	"io"
 
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
@@ -25,6 +28,19 @@ func newTracesHttpExporter(ctx context.Context) (trace.SpanExporter, error) {
 // トレースのエクスポーター(grpc)
 func newTracesGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
 	return otlptracegrpc.New(ctx, otlptracegrpc.WithInsecure())
+}
+
+// トレースのエクスポーター(jaeger)
+func newTracesJaegerExporter(ctx context.Context) (trace.SpanExporter, error) {
+	return jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://jaeger:14268/api/traces")))
+}
+
+// トレースのエクスポーター(jaeger)
+func newTracesWriterExporter(w io.Writer) (trace.SpanExporter, error) {
+	return stdouttrace.New(
+		stdouttrace.WithWriter(w),
+		stdouttrace.WithPrettyPrint(),
+	)
 }
 
 // メトリクスのエクスポーター(http)

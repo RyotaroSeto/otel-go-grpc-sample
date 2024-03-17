@@ -7,17 +7,12 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"sync"
+	"pkg/otel"
 
 	"gen/go/todo"
 	"net/http"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -32,63 +27,9 @@ func main() {
 	}
 }
 
-var (
-	resc              *resource.Resource
-	initResourcesOnce sync.Once
-)
-
-func initResource() *resource.Resource {
-	initResourcesOnce.Do(func() {
-		extraResources, _ := resource.New(
-			context.Background(),
-			resource.WithOS(),
-			resource.WithProcess(),
-			resource.WithContainer(),
-			resource.WithHost(),
-		)
-		resc, _ = resource.Merge(
-			resource.Default(),
-			extraResources,
-		)
-	})
-	return resc
-}
-
-func NewJaegerExporter() (trace.SpanExporter, error) {
-	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://jaeger:14268/api/traces")))
-	if err != nil {
-		return nil, err
-	}
-	return exporter, nil
-}
-
-func initTracerProvider() *trace.TracerProvider {
-	// ctx := context.Background()
-	// exporter, err := otlptracegrpc.New(ctx)
-	// if err != nil {
-	// 	log.Fatalf("OTLP Trace gRPC Creation: %v", err)
-	// }
-	exporter, err := NewJaegerExporter()
-	if err != nil {
-		log.Fatalf("OTLP Trace Creation: %v", err)
-	}
-	tp := trace.NewTracerProvider(
-		trace.WithBatcher(exporter),
-		trace.WithResource(initResource()), // 何が必要なのか要確認
-	)
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
-	return tp
-}
-
 func run() error {
-	tp := initTracerProvider()
-	defer func() {
-		if err := tp.Shutdown(context.Background()); err != nil {
-			log.Fatalf("Tracer Provider Shutdown: %v", err)
-		}
-		log.Println("Shutdown tracer provider")
-	}()
+	close := otel.NewTracerProvider("bff")
+	defer close()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()

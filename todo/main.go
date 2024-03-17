@@ -9,9 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	greetPb "gen/go/greet"
 	todoPb "gen/go/todo"
-
-	"todo/ui"
 
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -25,6 +24,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -126,16 +126,43 @@ func main() {
 	}
 }
 
+type todoServer struct {
+	todoPb.TodoApiServer
+}
+
 func setupServer() *grpc.Server {
 	srv := grpc.NewServer(
 		// grpc.ChainUnaryInterceptor(),
 		grpc.StatsHandler(otelgrpc.NewServerHandler()), // 分散トレーシングとメトリクスを有効にするためのgrpc.StatsHandlerを追加
 	)
 
-	todoPb.RegisterTodoApiServer(srv, ui.NewGRPCService())
+	todoPb.RegisterTodoApiServer(srv, &todoServer{})
 	reflection.Register(srv)
 
 	return srv
+}
+
+func (s *todoServer) Get(ctx context.Context, req *todoPb.GetRequest) (*todoPb.GetResponse, error) {
+	conn, err := grpc.DialContext(
+		ctx,
+		"localhost:8082",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	client := greetPb.NewGreetServiceClient(conn)
+	res, err := client.SayHello(ctx, &greetPb.NoParam{})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+
+	return &todoPb.GetResponse{
+		Id: res.Id,
+	}, nil
 }
 
 // TraceProviderの追加

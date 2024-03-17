@@ -110,7 +110,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
 	defer cancel()
 
-	ln, err := net.Listen("tcp", ":8080")
+	ln, err := net.Listen("tcp", ":8082")
 	if err != nil {
 		log.Fatalf("Failed to start server %v", err)
 	}
@@ -118,15 +118,14 @@ func main() {
 
 	srv := setupServer()
 	go func() {
-		if err := srv.Serve(ln); err != nil {
-			log.Fatalf("Failed to serve gRPC server, err: %v", err)
-		}
+		<-ctx.Done()
+		srv.GracefulStop()
+		log.Println("gRPC server stopped")
 	}()
 
-	<-ctx.Done()
-
-	srv.GracefulStop()
-	log.Println("gRPC server stopped")
+	if err := srv.Serve(ln); err != nil {
+		log.Fatalf("Failed to serve gRPC server, err: %v", err)
+	}
 }
 
 type helloServer struct {
@@ -146,4 +145,15 @@ func setupServer() *grpc.Server {
 
 	reflection.Register(srv)
 	return srv
+}
+
+func (s *helloServer) SayHello(ctx context.Context, req *pb.NoParam) (*pb.HelloResponse, error) {
+	// span := trace.SpanFromContext(ctx)
+	// span.SetAttributes(
+	// 	attribute.String("app.product.id", req.Id),
+	// )
+
+	return &pb.HelloResponse{
+		Id: 1,
+	}, nil
 }

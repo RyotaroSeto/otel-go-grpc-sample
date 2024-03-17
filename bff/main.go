@@ -54,6 +54,14 @@ func initResource() *resource.Resource {
 	return resc
 }
 
+func NewJaegerExporter() (trace.SpanExporter, error) {
+	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://jaeger:14268/api/traces")))
+	if err != nil {
+		return nil, err
+	}
+	return exporter, nil
+}
+
 func initTracerProvider() *trace.TracerProvider {
 	// ctx := context.Background()
 	// exporter, err := otlptracegrpc.New(ctx)
@@ -71,14 +79,6 @@ func initTracerProvider() *trace.TracerProvider {
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	return tp
-}
-
-func NewJaegerExporter() (trace.SpanExporter, error) {
-	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://jaeger:14268/api/traces")))
-	if err != nil {
-		return nil, err
-	}
-	return exporter, nil
 }
 
 func run() error {

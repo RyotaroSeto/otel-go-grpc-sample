@@ -7,20 +7,14 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	greetPb "gen/go/greet"
 	todoPb "gen/go/todo"
 
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
-	"github.com/open-feature/go-sdk/openfeature"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
@@ -50,12 +44,23 @@ func initResource() *resource.Resource {
 	return resc
 }
 
-func initTracerProvider() *trace.TracerProvider {
-	ctx := context.Background()
-
-	exporter, err := otlptracegrpc.New(ctx)
+func NewJaegerExporter() (trace.SpanExporter, error) {
+	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://jaeger:14268/api/traces")))
 	if err != nil {
-		log.Fatalf("OTLP Trace gRPC Creation: %v", err)
+		return nil, err
+	}
+	return exporter, nil
+}
+
+func initTracerProvider() *trace.TracerProvider {
+	// ctx := context.Background()
+	// exporter, err := otlptracegrpc.New(ctx)
+	// if err != nil {
+	// 	log.Fatalf("OTLP Trace gRPC Creation: %v", err)
+	// }
+	exporter, err := NewJaegerExporter()
+	if err != nil {
+		log.Fatalf("OTLP Trace Creation: %v", err)
 	}
 	tp := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
@@ -66,21 +71,21 @@ func initTracerProvider() *trace.TracerProvider {
 	return tp
 }
 
-func initMeterProvider() *metric.MeterProvider {
-	ctx := context.Background()
+// func initMeterProvider() *metric.MeterProvider {
+// 	ctx := context.Background()
 
-	exporter, err := otlpmetricgrpc.New(ctx)
-	if err != nil {
-		log.Fatalf("new otlp metric grpc exporter failed: %v", err)
-	}
+// 	exporter, err := otlpmetricgrpc.New(ctx)
+// 	if err != nil {
+// 		log.Fatalf("new otlp metric grpc exporter failed: %v", err)
+// 	}
 
-	mp := metric.NewMeterProvider(
-		metric.WithReader(metric.NewPeriodicReader(exporter)),
-		metric.WithResource(initResource()),
-	)
-	otel.SetMeterProvider(mp)
-	return mp
-}
+// 	mp := metric.NewMeterProvider(
+// 		metric.WithReader(metric.NewPeriodicReader(exporter)),
+// 		metric.WithResource(initResource()),
+// 	)
+// 	otel.SetMeterProvider(mp)
+// 	return mp
+// }
 
 func main() {
 	tp := initTracerProvider()
@@ -91,19 +96,19 @@ func main() {
 		log.Println("Shutdown tracer provider")
 	}()
 
-	mp := initMeterProvider()
-	defer func() {
-		if err := mp.Shutdown(context.Background()); err != nil {
-			log.Fatalf("Error shutting down meter provider: %v", err)
-		}
-		log.Println("Shutdown meter provider")
-	}()
-	openfeature.SetProvider(flagd.NewProvider())
+	// mp := initMeterProvider()
+	// defer func() {
+	// 	if err := mp.Shutdown(context.Background()); err != nil {
+	// 		log.Fatalf("Error shutting down meter provider: %v", err)
+	// 	}
+	// 	log.Println("Shutdown meter provider")
+	// }()
+	// openfeature.SetProvider(flagd.NewProvider())
 
-	err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

@@ -2,113 +2,28 @@ package main
 
 import (
 	"context"
+	greetPb "gen/go/greet"
+	todoPb "gen/go/todo"
 	"log"
 	"net"
 	"os/signal"
-	"sync"
+	"pkg/otel"
 	"syscall"
 
-	greetPb "gen/go/greet"
-	todoPb "gen/go/todo"
-
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
-var (
-	resc              *resource.Resource
-	initResourcesOnce sync.Once
-)
-
-func initResource() *resource.Resource {
-	initResourcesOnce.Do(func() {
-		extraResources, _ := resource.New(
-			context.Background(),
-			resource.WithOS(),
-			resource.WithProcess(),
-			resource.WithContainer(),
-			resource.WithHost(),
-		)
-		resc, _ = resource.Merge(
-			resource.Default(),
-			extraResources,
-		)
-	})
-	return resc
-}
-
-func NewJaegerExporter() (trace.SpanExporter, error) {
-	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://jaeger:14268/api/traces")))
-	if err != nil {
-		return nil, err
-	}
-	return exporter, nil
-}
-
-func initTracerProvider() *trace.TracerProvider {
-	// ctx := context.Background()
-	// exporter, err := otlptracegrpc.New(ctx)
-	// if err != nil {
-	// 	log.Fatalf("OTLP Trace gRPC Creation: %v", err)
-	// }
-	exporter, err := NewJaegerExporter()
-	if err != nil {
-		log.Fatalf("OTLP Trace Creation: %v", err)
-	}
-	tp := trace.NewTracerProvider(
-		trace.WithBatcher(exporter),
-		trace.WithResource(initResource()), // 何が必要なのか要確認
-	)
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
-	return tp
-}
-
-// func initMeterProvider() *metric.MeterProvider {
-// 	ctx := context.Background()
-
-// 	exporter, err := otlpmetricgrpc.New(ctx)
-// 	if err != nil {
-// 		log.Fatalf("new otlp metric grpc exporter failed: %v", err)
-// 	}
-
-// 	mp := metric.NewMeterProvider(
-// 		metric.WithReader(metric.NewPeriodicReader(exporter)),
-// 		metric.WithResource(initResource()),
-// 	)
-// 	otel.SetMeterProvider(mp)
-// 	return mp
-// }
+// TracerProviderへの追加はプロセスセーフではないといけないので、main関数の中でかくこと
+// 間違ってもhandlerとか多数のスレッドで呼び出されるところでやってはいけない
+// 後続のサービスへspanのContextを伝播するには、otel.SetTextMapPropagatorを追記すること。
+// これはリクエスト送る側だけではなく、受け取る側にも必要
 
 func main() {
-	tp := initTracerProvider()
-	defer func() {
-		if err := tp.Shutdown(context.Background()); err != nil {
-			log.Fatalf("Tracer Provider Shutdown: %v", err)
-		}
-		log.Println("Shutdown tracer provider")
-	}()
-
-	// mp := initMeterProvider()
-	// defer func() {
-	// 	if err := mp.Shutdown(context.Background()); err != nil {
-	// 		log.Fatalf("Error shutting down meter provider: %v", err)
-	// 	}
-	// 	log.Println("Shutdown meter provider")
-	// }()
-	// openfeature.SetProvider(flagd.NewProvider())
-
-	// err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	close := otel.NewTracerProvider("todo")
+	defer close()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -169,12 +84,3 @@ func (s *todoServer) Get(ctx context.Context, req *todoPb.GetRequest) (*todoPb.G
 		Id: res.Id,
 	}, nil
 }
-
-// TraceProviderの追加
-// TracerProviderとはTracerへのアクセスを提供する
-// TracerとはStartメソッドを持つInterfaceであり、contextとNameを引数にSpanとContextを作成する機能を持つ
-
-// TracerProviderへの追加はプロセスセーフではないといけないので、main関数の中でかくこと
-// 間違ってもhandlerとか多数のスレッドで呼び出されるところでやってはいけない
-// 後続のサービスへspanのContextを伝播するには、otel.SetTextMapPropagatorを追記すること。
-// これはリクエスト送る側だけではなく、受け取る側にも必要

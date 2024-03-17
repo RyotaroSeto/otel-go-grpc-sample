@@ -1,11 +1,11 @@
-package main
+package handlers
 
 import (
 	"context"
+	"gen/go/todo"
 	"net/http"
-	"otel-go-sample/gen/go/todo"
 
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -16,7 +16,7 @@ func NewHandler(ctx context.Context) (http.Handler, error) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	if err := todo.RegisterTodoApiHandlerFromEndpoint(ctx, grpcGateway, "end", opts); err != nil {
+	if err := todo.RegisterTodoApiHandlerFromEndpoint(ctx, grpcGateway, "localhost:8081", opts); err != nil {
 		return nil, err
 	}
 

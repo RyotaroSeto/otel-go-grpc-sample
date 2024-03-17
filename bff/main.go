@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bff/handlers"
+	"bff/server"
 	"context"
 	"fmt"
 	"log"
@@ -25,11 +27,11 @@ func run() error {
 		return err
 	}
 
-	mux, err := NewHandler(ctx)
+	mux, err := handlers.NewHandler(ctx)
 	if err != nil {
 		return err
 	}
 
-	s := NewServer(l, mux)
+	s := server.NewServer(l, mux)
 	return s.Run(ctx)
 }

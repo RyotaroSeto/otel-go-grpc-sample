@@ -14,9 +14,9 @@
 ```mermaid
 
 stateDiagram
-  User --> Bff
-  Bff --> Todo
-  Todo --> Greet
+  User --> Bff: http1.1
+  Bff --> Todo: http2.0
+  Todo --> Greet: http2.0
 
 ```
 

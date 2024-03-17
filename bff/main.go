@@ -26,6 +26,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	log.Printf("Server started at %v", l.Addr())
 
 	mux, err := handlers.NewHandler(ctx)
 	if err != nil {

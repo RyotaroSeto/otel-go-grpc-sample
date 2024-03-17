@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
-	pb "otel-go-sample/proto"
+	todoPb "gen/go/todo"
+
+	"todo/ui"
 
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -22,7 +25,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 var (
@@ -102,27 +105,38 @@ func main() {
 		log.Fatal(err)
 	}
 
-	grpcRequest()
-}
-
-func grpcRequest() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	conn, err := grpc.DialContext(
-		ctx,
-		"localhost:8080",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-	)
+	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Fatalf("Failed to start server %v", err)
 	}
-	defer conn.Close()
+	log.Printf("Server started at %v", ln.Addr())
 
-	client := pb.NewGreetServiceClient(conn)
+	srv := setupServer()
+	go func() {
+		if err := srv.Serve(ln); err != nil {
+			log.Fatalf("Failed to serve gRPC server, err: %v", err)
+		}
+	}()
 
-	callSayHello(client)
+	<-ctx.Done()
+
+	srv.GracefulStop()
+	log.Println("gRPC server stopped")
+}
+
+func setupServer() *grpc.Server {
+	srv := grpc.NewServer(
+		// grpc.ChainUnaryInterceptor(),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()), // 分散トレーシングとメトリクスを有効にするためのgrpc.StatsHandlerを追加
+	)
+
+	todoPb.RegisterTodoApiServer(srv, ui.NewGRPCService())
+	reflection.Register(srv)
+
+	return srv
 }
 
 // TraceProviderの追加

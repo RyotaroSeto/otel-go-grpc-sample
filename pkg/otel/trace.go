@@ -33,7 +33,7 @@ func newExporter(ctx context.Context) (trace.SpanExporter, error) {
 	case "grpc":
 		return newTracesGrpcExporter(ctx)
 	case "jaeger":
-		return newTracesJaegerExporter(ctx)
+		return newTracesJaegerExporter()
 	default:
 		return newTracesWriterExporter(os.Stdout)
 	}
@@ -46,9 +46,10 @@ func NewTracerProvider(serviceName string) func() {
 		log.Fatalf("OTLP Trace Creation: %v", err)
 	}
 
+	r := newResource(serviceName, "1.0.0", "local")
 	tp := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
-		trace.WithResource(newResource(serviceName, "1.0.0", "local")),
+		trace.WithResource(r),
 	)
 	otel.SetTracerProvider(tp)
 

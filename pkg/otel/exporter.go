@@ -31,7 +31,7 @@ func newTracesGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
 }
 
 // トレースのエクスポーター(jaeger)
-func newTracesJaegerExporter(ctx context.Context) (trace.SpanExporter, error) {
+func newTracesJaegerExporter() (trace.SpanExporter, error) {
 	return jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://jaeger:14268/api/traces")))
 }
 

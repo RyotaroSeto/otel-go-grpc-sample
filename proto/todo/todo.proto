@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package todo_service;
+
+import "google/api/annotations.proto";
+
+option go_package = "gen/go/todo";
+
+service TodoApi {
+  rpc Get(GetRequest) returns (GetResponse) {
+    option (google.api.http) = {get: "/todo"};
+  }
+}
+
+message GetRequest {}
+
+message GetResponse {
+  uint64 id = 1;
+}

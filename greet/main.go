@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	pb "otel-go-sample/proto"
 
@@ -21,6 +22,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -33,7 +35,7 @@ var (
 	initResourcesOnce sync.Once
 )
 
-func initResource() *resource.Resource {
+func initResource() *resource.Resource { // 何が必要なのか要確認
 	initResourcesOnce.Do(func() {
 		extraResources, _ := resource.New(
 			context.Background(),
@@ -59,7 +61,7 @@ func initTracerProvider() *trace.TracerProvider {
 	}
 	tp := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
-		trace.WithResource(initResource()), // 何が必要なのか要確認
+		trace.WithResource(initResource()),
 	)
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
@@ -99,6 +101,11 @@ func main() {
 		log.Println("Shutdown meter provider")
 	}()
 	openfeature.SetProvider(flagd.NewProvider())
+
+	err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
 	defer cancel()

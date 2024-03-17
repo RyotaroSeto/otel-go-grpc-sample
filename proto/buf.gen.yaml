@@ -1,0 +1,11 @@
+version: v1
+managed:
+  enabled: true
+plugins:
+  - name: go
+    out: ../
+  - name: go-grpc
+    out: ../
+  - plugin: grpc-gateway
+    out: ../
+    opt: generate_unbound_methods=true

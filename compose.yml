@@ -1,0 +1,57 @@
+services:
+
+  bff:
+    container_name: bff
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app:delegated
+    working_dir: /app/bff
+    command:
+      - go
+      - run
+      - main.go
+
+  todo:
+    container_name: todo
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app:delegated
+    working_dir: /app/todo
+    command:
+      - go
+      - run
+      - main.go
+
+  greet:
+    container_name: greet
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app:delegated
+    working_dir: /app/greet
+    command:
+      - go
+      - run
+      - main.go
+
+  jaeger:
+    image: "jaegertracing/all-in-one:1.42"
+    ports:
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686" # Web UI
+      - "4317:4317"
+      - "4318:4318"
+      - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
+      - "9411:9411"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true

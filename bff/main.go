@@ -12,8 +12,9 @@ import (
 	"gen/go/todo"
 	"net/http"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -54,11 +55,14 @@ func initResource() *resource.Resource {
 }
 
 func initTracerProvider() *trace.TracerProvider {
-	ctx := context.Background()
-
-	exporter, err := otlptracegrpc.New(ctx)
+	// ctx := context.Background()
+	// exporter, err := otlptracegrpc.New(ctx)
+	// if err != nil {
+	// 	log.Fatalf("OTLP Trace gRPC Creation: %v", err)
+	// }
+	exporter, err := NewJaegerExporter()
 	if err != nil {
-		log.Fatalf("OTLP Trace gRPC Creation: %v", err)
+		log.Fatalf("OTLP Trace Creation: %v", err)
 	}
 	tp := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
@@ -67,6 +71,14 @@ func initTracerProvider() *trace.TracerProvider {
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	return tp
+}
+
+func NewJaegerExporter() (trace.SpanExporter, error) {
+	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://jaeger:14268/api/traces")))
+	if err != nil {
+		return nil, err
+	}
+	return exporter, nil
 }
 
 func run() error {
@@ -102,13 +114,14 @@ func newHandler(ctx context.Context) (http.Handler, error) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	if err := todo.RegisterTodoApiHandlerFromEndpoint(ctx, grpcGateway, "localhost:8081", opts); err != nil {
+	if err := todo.RegisterTodoApiHandlerFromEndpoint(ctx, grpcGateway, "todo:8081", opts); err != nil {
 		return nil, err
 	}
+	otelHandler := otelhttp.NewHandler(grpcGateway, "helloHandler")
 
 	mux := http.NewServeMux()
 	mux.Handle("/helthcheck", http.HandlerFunc(healthCheckHandler))
-	mux.Handle("/", grpcGateway)
+	mux.Handle("/", otelHandler)
 	return mux, nil
 }
 

@@ -145,7 +145,7 @@ func setupServer() *grpc.Server {
 func (s *todoServer) Get(ctx context.Context, req *todoPb.GetRequest) (*todoPb.GetResponse, error) {
 	conn, err := grpc.DialContext(
 		ctx,
-		"localhost:8082",
+		"greet:8082",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)

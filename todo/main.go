@@ -116,15 +116,14 @@ func main() {
 
 	srv := setupServer()
 	go func() {
-		if err := srv.Serve(ln); err != nil {
-			log.Fatalf("Failed to serve gRPC server, err: %v", err)
-		}
+		<-ctx.Done()
+		srv.GracefulStop()
+		log.Println("gRPC server stopped")
 	}()
 
-	<-ctx.Done()
-
-	srv.GracefulStop()
-	log.Println("gRPC server stopped")
+	if err := srv.Serve(ln); err != nil {
+		log.Fatalf("Failed to serve gRPC server, err: %v", err)
+	}
 }
 
 func setupServer() *grpc.Server {

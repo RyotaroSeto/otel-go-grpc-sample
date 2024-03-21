@@ -22,11 +22,13 @@ import (
 
 // トレースのエクスポーター(http)
 func newTracesHttpExporter(ctx context.Context) (trace.SpanExporter, error) {
+	// endpointOpt := otlptracehttp.WithEndpoint(otlpEndpoint) // エンドポイントがデフォルトの場合は不要
 	return otlptracehttp.New(ctx, otlptracehttp.WithInsecure())
 }
 
 // トレースのエクスポーター(grpc)
 func newTracesGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
+	// endpointOpt := otlptracegrpc.WithEndpoint(otlpEndpoint) // エンドポイントがデフォルトの場合は不要
 	return otlptracegrpc.New(ctx, otlptracegrpc.WithInsecure())
 }
 

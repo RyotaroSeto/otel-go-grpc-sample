@@ -13,6 +13,21 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
+var otlpEndpoint string
+
+func init() {
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		),
+	)
+	otlpEndpoint = os.Getenv("OTLP_ENDPOINT")
+	if otlpEndpoint == "" {
+		log.Fatalln("You MUST set OTLP_ENDPOINT env variable!")
+	}
+}
+
 func newResource(serviceName, version, env string) *resource.Resource {
 	resc, _ := resource.Merge(
 		resource.Default(),
@@ -59,13 +74,4 @@ func NewTracerProvider(serviceName string) func() {
 		}
 		log.Println("Shutdown tracer provider")
 	}
-}
-
-func init() {
-	otel.SetTextMapPropagator(
-		propagation.NewCompositeTextMapPropagator(
-			propagation.TraceContext{},
-			propagation.Baggage{},
-		),
-	)
 }

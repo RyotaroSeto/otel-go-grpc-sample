@@ -22,6 +22,7 @@ func init() {
 			propagation.Baggage{},
 		),
 	)
+	// エンドポイントがHTTPはデフォルト(localhost:4318)の場合は不要 エンドポイントがgRPCはデフォルト(localhost:4317)の場合は不要
 	otlpEndpoint = os.Getenv("OTLP_ENDPOINT")
 	if otlpEndpoint == "" {
 		log.Fatalln("You MUST set OTLP_ENDPOINT env variable!")
